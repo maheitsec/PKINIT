@@ -1,0 +1,31 @@
+How to build openssl on Windows
+(http://developer.covenanteyes.com/building-openssl-for-visual-studio/)
+
+
+1. Preparation for OpenSSL build
+
+- Install requirements
+Install Visual Studio 2010
+Install strawberry-perl
+
+- Get OpenSSL source code
+Download openssl-1.0.2g.tar.gz in https://www.openssl.org/source/old/1.0.2/
+https://www.openssl.org/source/old/1.0.2/openssl-1.0.2g.tar.gz
+
+2. Build OpenSSL source code
+
+- Open the Visual Studio x64 Win64 Command Prompt (2010) (in the Start menu).
+
+- Create the openssl build directory
+> D:
+> mkdir Build-OpenSSL-VC-64
+
+- Go to the openssl source directory
+> D:
+> cd openssl-1.0.2g
+> perl Configure VC-WIN64A --prefix=D:\Build-OpenSSL-VC-64
+> ms\do_win64a.bat
+> nmake -f ms\nt.mak
+> nmake -f ms\nt.mak install
+
+You can see outputs in D:\Build-OpenSSL-VC-64

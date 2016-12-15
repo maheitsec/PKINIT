@@ -1,0 +1,98 @@
+How to Set up Kerberos Server and Client on Ubuntu machines
+(http://blog.manula.org/2012/04/setting-up-kerberos-server-with-debian.html?view=classic)
+
+
+
+1. Preparation
+
+- Install 3 Ubuntu VMs with kerberos.com, client.com, ssh.com as hostnames
+3 VMs should have same time/timezone.
+
+- Add custom hostnames in /etc/hosts files of all Ubuntu machines
+192.168.71.133 kerberos.com
+192.168.71.136 client.com
+192.168.71.137 ssh.com
+
+- Check hostnames
+ping kerberos.com, client.com, ssh.com
+
+
+
+2. Kerberos Server (KDC)
+
+2.1 Install the Kerberos server
+
+$ sudo apt-get update
+$ sudo apt-get install krb5-admin-server krb5-kdc
+
+Default Kerberos version 5 realm: KERBEROS.COM
+Kerberos servers for your realm: kerberos.com
+Administrative server for your realm: kerberos.com
+
+2.2 Configure the Kerberos server
+
+- Create a new realm
+$ krb5_newrealm
+$ sudo krb5_newrealm
+It will take about 10~60 minutes.
+
+- Add users(principles)
+$ sudo kadmin.local
+kadmin.local: addprinc root
+kadmin.local: exit
+$ kinit root
+$ klist
+$ kdestroy
+
+
+
+3. Kerberos Client
+
+$ sudo apt-get install krb5-user
+$ kinit root
+$ kdestroy
+
+
+
+4. SSH server
+
+- Install openssh-server and krb5-config
+$ sudo apt-get install openssh-server krb5-config
+
+- Configure SSH to use with kerberos
+Add followings in the /etc/ssh/sshd_config file
+GSSAPIAuthentication yes
+GSSAPICleanupCredentials yes
+
+- Restart ssh server
+$ sudo /etc/init.d/ssh restart
+
+
+
+5. Configuring Kerberos server, client, ssh service
+
+- kerberos server
+$ sudo kadmin.local
+kadmin.local: addprinc -randkey host/ssh.com
+kadmin.local: ktadd -k /tmp/ssh.com.keytab host/ssh.com
+
+- Copy ssh.com.keytab file to /etc/krb5.keytab of ssh.com
+$ scp /tmp/ssh.com.keytab root@ssh.com:/etc/krb5.keytab
+In ssh.com
+$ sudo /etc/init.d/ssh restart
+
+- kerberos client
+Edit /etc/ssh/ssh_config
+GSSAPIAuthentication yes
+GSSAPIDelegateCredentials yes
+
+
+
+6. Testing Kerbers server and client
+
+In client.com
+$ kinit root
+$ ssh root@ssh.com
+You should login ssh.com without password.
+# exit
+$ kdestroy

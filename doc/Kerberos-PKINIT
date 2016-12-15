@@ -1,0 +1,143 @@
+How to set up PKINIT plugin on kerberos
+(http://k5wiki.kerberos.org/wiki/Pkinit_configuration, 
+https://web.mit.edu/kerberos/krb5-1.13/doc/admin/pkinit.html)
+
+
+1. Creating certificates
+
+1.1 Generating CA certificate
+
+$ openssl genrsa -out cakey.pem 2048
+$ openssl req -key cakey.pem -new -x509 -out cacert.pem
+Common Name: CA
+You can see two files: cacert.pem, cakey.pem
+
+1.2 Generating KDC certificate
+
+- In kerberos.com
+$ openssl genrsa -out kdckey.pem 2048
+$ openssl req -new -out kdc.req -key kdckey.pem
+Common Name: kdc
+
+- Generate KDC certificate using pkinit_extensions file (Please see: 3. Extensions file)
+$ REALM=KERBEROS.COM; export REALM
+$ CLIENT=kerberos.com; export CLIENT
+$ openssl x509 -req -in kdc.req -CAkey cakey.pem -CA cacert.pem -out kdc.pem -extfile pkinit_extensions -extensions kdc_cert -CAcreateserial
+$ rm -f kdc.req
+You can see two files: kdc.pem, kdckey.pem
+
+1.3 Generating client certificates
+
+- In client.com
+$ openssl genrsa -out clientkey.pem 2048
+$ openssl req -new -key clientkey.pem -out client.req
+Common Name: root
+
+- Copy client.req into kerberos.com
+
+- Generate client certificate using pkinit_extensions file (Please see: 3. Extensions file)
+$ REALM=KERBEROS.COM; export REALM
+$ CLIENT=root; export CLIENT
+$ openssl x509 -CAkey cakey.pem -CA cacert.pem -req -in client.req -extensions client_cert -extfile pkinit_extensions -out client.pem
+$ rm -f client.req
+
+- Copy client.pem, cacert.pem into client.com
+
+
+2. Configuring PKINIT
+
+2.1 Configuring PKINIT in KDC
+
+- Install the pkinit plugin
+$ sudo apt-get install krb5-pkinit
+
+- Insert the following entries into the kdcdefaults or a realms section of the kdc.conf or krb5.conf used by the KDC.
+pkinit_identity = FILE:/home/mahe/kdc.pem,/home/mahe/kdckey.pem
+pkinit_anchors = FILE:/home/mahe/cacert.pem
+kdc_tcp_ports = 88
+
+- Set the requires_preauth attribute from within kadmin:
+$ sudo kadmin.local
+kadmin.local: modprinc +requires_preauth root@KERBEROS.COM
+
+- Restart the kdc service
+$ sudo /etc/init.d/krb5-kdc restart
+
+2.2 Configuring PKINIT in client
+
+- Install the pkinit plugin
+$ sudo apt-get install krb5-pkinit
+
+- Add the following to the appropriate realm section of krb5.conf
+pkinit_anchors = FILE:/home/mahe/cacert.pem
+pkinit_identities = FILE:/home/mahe/client.pem,/home/mahe/clientkey.pem
+
+- After this point, using kinit as the appropriate client principal should not require a password.
+$ pkinit root
+$ ssh root@ssh.com
+
+
+
+3. Extensions file
+
+[ kdc_cert ]
+basicConstraints=CA:FALSE
+
+# Here are some examples of the usage of nsCertType. If it is omitted
+keyUsage = nonRepudiation, digitalSignature, keyEncipherment, keyAgreement
+
+#Pkinit EKU
+extendedKeyUsage = 1.3.6.1.5.2.3.5
+
+subjectKeyIdentifier=hash
+authorityKeyIdentifier=keyid,issuer
+
+# Copy subject details
+
+issuerAltName=issuer:copy
+
+# Add id-pkinit-san (pkinit subjectAlternativeName)
+subjectAltName=otherName:1.3.6.1.5.2.2;SEQUENCE:kdc_princ_name
+
+[kdc_princ_name]
+realm = EXP:0, GeneralString:${ENV::REALM}
+principal_name = EXP:1, SEQUENCE:kdc_principal_seq
+
+[kdc_principal_seq]
+name_type = EXP:0, INTEGER:1
+name_string = EXP:1, SEQUENCE:kdc_principals
+
+[kdc_principals]
+princ1 = GeneralString:krbtgt
+princ2 = GeneralString:${ENV::REALM}
+
+[ client_cert ]
+
+# These extensions are added when 'ca' signs a request.
+
+basicConstraints=CA:FALSE
+
+keyUsage = digitalSignature, keyEncipherment, keyAgreement
+
+extendedKeyUsage =  1.3.6.1.5.2.3.4
+subjectKeyIdentifier=hash
+authorityKeyIdentifier=keyid,issuer
+
+
+subjectAltName=otherName:1.3.6.1.5.2.2;SEQUENCE:princ_name
+
+
+# Copy subject details
+
+issuerAltName=issuer:copy
+
+[princ_name]
+realm = EXP:0, GeneralString:${ENV::REALM}
+principal_name = EXP:1, SEQUENCE:principal_seq
+
+[principal_seq]
+name_type = EXP:0, INTEGER:1
+name_string = EXP:1, SEQUENCE:principals
+
+[principals]
+princ1 = GeneralString:${ENV::CLIENT}

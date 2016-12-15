@@ -1,0 +1,35 @@
+How to build krb5 on Ubuntu
+
+1. Build krb5 from Git
+https://github.com/krb5/krb5
+
+- Install git and other packages on Ubuntu
+$ sudo apt-get update
+$ sudo apt-get install git gcc autoconf make bison libssl-dev
+
+- Get source code from git
+$ git clone https://github.com/krb5/krb5.git
+
+- BUild krb5
+$ cd krb5/src
+$ autoconf
+$ autoheader
+$ ./configure
+$ make
+$ sudo make install
+
+ - Build krb5 with PKINIT plugin
+ $ ./configure --enable-pkinit
+ $ make
+ $ sudo make install
+ You can see /usr/local/lib/krb5/plugins/preauth/pkinit.so file.
+
+ 2. Test kadmin
+
+Please use the same krb5.conf and certificates.
+
+$ /usr/local/bin/kinit root
+$ ssh root@ssh.com
+# exit
+$ /usr/local/bin/klist
+$ /usr/local/bin/kdestroy

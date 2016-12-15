@@ -1,0 +1,113 @@
+How to build krb5 on Windows 7 x64
+(http://k5wiki.kerberos.org/wiki/Kerberos_for_Windows_(KfW)_Build_Environment)
+
+
+1. Get source code
+
+- Install git program on Windows 7 x64
+https://github.com/git-for-windows/git/releases/download/v2.10.2.windows.1/Git-2.10.2-64-bit.exe
+
+- Get source code from Git
+Open Git Bash
+$ git clone https://github.com/krb5/krb5.git
+
+
+2. Preparing for build
+
+- Install MS Visual Studio 2010 Professional
+
+- Install the Windows SDK version 7.1
+http://www.microsoft.com/en-us/download/details.aspx?displaylang=en&id=8279
+
+- Install the Utilities and SDK for UNIX-based Applications (amd64 if on a 64-bit system)
+http://www.microsoft.com/en-us/download/details.aspx?id=23754
+
+- Install the Windows Installer XML Toolkit
+https://download-codeplex.sec.s-msft.com/Download/Release?ProjectName=wix&DownloadId=204417&FileTime=129409234222130000&Build=19194
+
+- Install strawberry perl
+http://strawberryperl.com/
+
+- Update the system path to include some necessary utilities
+Control Panel->System->Advanced System Settings->Environment Variables->System variables
+Variable name: Path
+Add follwings in Variable value with <;>
+C:\Windows\SUA\bin
+C:\Program Files\MIT\Kerberos\bin
+C:\Program Files (x86)\Windows Installer XML v3.5\bin
+C:\Program Files (x86)\HTML Help Workshop
+
+- Copy awk.exe into C:\Windows\SUA\bin
+http://gnuwin32.sourceforge.net/packages/gawk.htm
+Get Binaries (http://gnuwin32.sourceforge.net/downlinks/gawk-bin-zip.php)
+
+
+
+3. Building source code
+
+3.1 Building for x86
+
+Open Windows SDK 7.1 command prompt as administrator mode.
+
+- Environment set-up
+> C:
+> cd \Program Files\Microsoft SDKs\Windows\v7.1\Bin\
+> SetEnv.Cmd /x86
+> set CPU=i386
+> set KRB_INSTALL_DIR=D:\krb5-obj
+
+- Build 32-bit binaries
+> D:
+> cd D:\krb5\src
+> nmake -f Makefile.in prep-windows
+> nmake
+> nmake install
+
+- Build 32-bit installer
+> cd windows\installer\wix
+> nmake
+> rename kfw.msi kfw32.msi
+
+3.2 Building for x64
+
+Please build for x64 after building x86. Because x86 binaries are used in building for x64.
+Open Windows SDK 7.1 command prompt as administrator mode.
+
+- Environment set-up
+> C:
+> cd \Program Files\Microsoft SDKs\Windows\v7.1\Bin\
+> SetEnv.Cmd /x64
+> set CPU=AMD64
+
+- Build 64-bit binaries
+> D:
+> cd D:\krb5\src
+> nmake clean
+> nmake -f Makefile.in prep-windows
+> nmake
+> nmake install
+
+- Build 64-bit installer
+> cd windows\installer\wix
+> nmake
+> rename kfw.msi kfw64.msi
+
+
+
+4. Test kerberos
+
+- Install kfw64.msi (or kfw32.msi)
+
+- Copy krb5.ini (same to krb5.conf on Ubuntu) into C:\ProgramData\MIT\Kerberos5
+
+- Add followings in C:\Windows\System32\drivers\etc\hosts
+192.168.71.133 kerberos.com
+192.168.71.137 ssh.com
+
+- Run MIT Kerberos Ticket Manager.exe
+Get ticket
+Principal: root@KERBEROS.COM
+Password: 
+
+- Run putty.exe
+Try root@ssh.com without password
