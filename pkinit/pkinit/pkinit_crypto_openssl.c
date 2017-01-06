@@ -3764,7 +3764,10 @@ pkinit_login(krb5_context context,
         if (asprintf(&prompt, "%.*s PIN%s", (int) sizeof (tip->label),
                      tip->label, warning) < 0)
             return ENOMEM;
-        rdat.data = malloc(tip->ulMaxPinLen + 2);
+		//Changed by Ma He
+        //rdat.data = malloc(tip->ulMaxPinLen + 2);
+		rdat.data = (char *)malloc(tip->ulMaxPinLen + 2);
+		//End
         rdat.length = tip->ulMaxPinLen + 1;
 
         kprompt.prompt = prompt;
